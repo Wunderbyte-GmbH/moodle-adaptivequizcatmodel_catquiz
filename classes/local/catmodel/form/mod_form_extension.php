@@ -32,6 +32,8 @@ use MoodleQuickForm;
 final class mod_form_extension implements
     catmodel_mod_form_modifier, catmodel_mod_form_validator, catmodel_mod_form_data_preprocessor {
 
+    public const UNLIMITED_QUESTIONS_FALLBACK = 1000;
+
     /**
      * Implementation of interface, {@see catmodel_mod_form_modifier::definition_after_data_callback()}.
      *
@@ -62,6 +64,21 @@ final class mod_form_extension implements
                 $form->removeElement($elementname);
             }
         }
+        $maxquestionsgroup = $form->getSubmitValue('maxquestionsgroup');
+        if (!$maxquestionsgroup || !array_key_exists('catquiz_maxquestions', $maxquestionsgroup)) {
+            return $formelements;
+        }
+
+        // The maximumquestions value should not be 0 so that the progress can be displayed. Therefore, set the adaptivequiz
+        // maximumquestions value to the maxquestions of the catquiz settings.
+        $catquizmax = $maxquestionsgroup['catquiz_maxquestions'];
+        // If there is no maximum set, use a fallback value.
+        if (!$catquizmax) {
+            $catquizmax = self::UNLIMITED_QUESTIONS_FALLBACK;
+        }
+        $maxquestionselem = $form->addElement('text', 'maximumquestions', 'maximumquestions');
+        $maxquestionselem->setValue($catquizmax);
+        $formelements[] = $maxquestionselem;
 
         return $formelements;
     }

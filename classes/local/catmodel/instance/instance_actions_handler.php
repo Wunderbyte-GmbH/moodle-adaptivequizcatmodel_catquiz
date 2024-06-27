@@ -17,7 +17,6 @@
 namespace adaptivequizcatmodel_catquiz\local\catmodel\instance;
 
 use local_catquiz\catquiz_handler;
-use local_catquiz\testenvironment;
 use mod_adaptivequiz\local\catmodel\instance\catmodel_add_instance_handler;
 use mod_adaptivequiz\local\catmodel\instance\catmodel_delete_instance_handler;
 use mod_adaptivequiz\local\catmodel\instance\catmodel_update_instance_handler;
@@ -69,19 +68,13 @@ class instance_actions_handler implements
      */
     public function delete_instance_callback(stdClass $adaptivequiz): void {
         global $DB;
-
-        // Create stdClass with all the values.
-        $cattest = (object)[
-            'componentid' => $adaptivequiz->id,
-            'component' => 'mod_adaptivequiz',
-            'json' => json_encode($adaptivequiz),
-            'status' => 0, // 0 Stands for deleted.
-        ];
-
-        // Pass on the values as stdClas.
-        $test = new testenvironment($cattest);
-
-        // Save the values in the DB.
-        $test->save_or_update();
+        $DB->delete_records(
+            'local_catquiz_tests',
+            ['componentid' => $adaptivequiz->id, 'component' => 'mod_adaptivequiz']
+        );
+        $DB->delete_records(
+            'local_catquiz_attempts',
+            ['instanceid' => $adaptivequiz->id, 'component' => 'adaptivequiz']
+        );
     }
 }

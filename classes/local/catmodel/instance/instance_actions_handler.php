@@ -16,6 +16,7 @@
 
 namespace adaptivequizcatmodel_catquiz\local\catmodel\instance;
 
+use local_catquiz\catquiz;
 use local_catquiz\catquiz_handler;
 use mod_adaptivequiz\local\catmodel\instance\catmodel_add_instance_handler;
 use mod_adaptivequiz\local\catmodel\instance\catmodel_delete_instance_handler;

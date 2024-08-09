@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->version = 2024062800;
-$plugin->release = '1.0.1';
+$plugin->release = '1.0.2';
 $plugin->maturity = MATURITY_ALPHA;
 $plugin->requires = 2022041900;
 $plugin->component = 'adaptivequizcatmodel_catquiz';

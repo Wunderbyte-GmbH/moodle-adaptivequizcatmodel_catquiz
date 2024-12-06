@@ -72,9 +72,29 @@ class instance_actions_handler implements
             'local_catquiz_tests',
             ['componentid' => $adaptivequiz->id, 'component' => 'mod_adaptivequiz']
         );
-        $DB->delete_records(
+
+        $attemptids = $DB->get_fieldset_select(
             'local_catquiz_attempts',
+            'attemptid',
+            'instanceid = :instanceid AND component = :component',
             ['instanceid' => $adaptivequiz->id, 'component' => 'adaptivequiz']
+        );
+
+        // If there are no attempts to delete, we can return.
+        if (!$attemptids) {
+            return;
+        }
+
+        [$insql, $inparams] = $DB->get_in_or_equal($attemptids);
+        $DB->delete_records_select(
+            'local_catquiz_progress',
+            "attemptid {$insql}",
+            $inparams
+        );
+        $DB->delete_records_select(
+            'local_catquiz_attempts',
+            "attemptid {$insql}",
+            $inparams
         );
     }
 }

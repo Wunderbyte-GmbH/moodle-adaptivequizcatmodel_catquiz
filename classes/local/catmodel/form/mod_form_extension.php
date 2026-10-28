@@ -30,8 +30,11 @@ use MoodleQuickForm;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class mod_form_extension implements
-    catmodel_mod_form_modifier, catmodel_mod_form_validator, catmodel_mod_form_data_preprocessor {
-
+    catmodel_mod_form_data_preprocessor,
+    catmodel_mod_form_modifier,
+    catmodel_mod_form_validator
+{
+    /** @var int Maximum number of questions used when the activity sets no limit of its own. */
     public const UNLIMITED_QUESTIONS_FALLBACK = 1000;
 
     /**
@@ -43,23 +46,21 @@ final class mod_form_extension implements
      * @return array
      */
     public function definition_after_data_callback(MoodleQuickForm $form): array {
-
+        $formelements = [];
         $data = $form->exportValues();
 
         if ($data['catmodel'] === 'catquiz') {
+            $this->move_catmodel_selector_block_above_grading($form);
             $formelements = catquiz_handler::instance_form_definition($form);
 
             // At this point, we also apply the values we get from the template to the whole mform.
-
             catquiz_handler::set_data_after_definition($form);
-
         }
 
         // Remove some default form fields the sub-plugin does not use.
         $defaultelementstodrop = ['startinglevel', 'stopingconditionshdr', 'minimumquestions', 'maximumquestions', 'standarderror',
             'questionpool', 'lowestlevel', 'highestlevel', 'questionselectionheading'];
         foreach ($defaultelementstodrop as $elementname) {
-
             if ($form->elementExists($elementname)) {
                 $form->removeElement($elementname);
             }
@@ -84,6 +85,35 @@ final class mod_form_extension implements
     }
 
     /**
+     * Moves the CAT model selector block before grading fields.
+     *
+     * @param MoodleQuickForm $form
+     * @return void
+     */
+    private function move_catmodel_selector_block_above_grading(MoodleQuickForm $form): void {
+        $anchor = null;
+
+        if ($form->elementExists('modstandardgrade')) {
+            $anchor = 'modstandardgrade';
+        } else if ($form->elementExists('grademethod')) {
+            // Fallback for forms without grading header.
+            $anchor = 'grademethod';
+        }
+
+        if (!$anchor) {
+            return;
+        }
+
+        foreach (['advancedheading', 'catmodel', 'catmodelfieldsmarker'] as $elementname) {
+            if (!$form->elementExists($elementname)) {
+                continue;
+            }
+
+            $form->insertElementBefore($form->removeElement($elementname, false), $anchor);
+        }
+    }
+
+    /**
      * Implementation of interface, {@see catmodel_mod_form_validator::validation_callback()}.
      *
      * Validation of fields introduced by this CAT model.
@@ -93,8 +123,9 @@ final class mod_form_extension implements
      * @return array
      */
     public function validation_callback(array $data, array $files): array {
-
-        if ($data['catmodel'] === 'catquiz') {
+        // Another CAT model has no errors here; the variable was undefined then and the return a type error.
+        $errors = [];
+        if (($data['catmodel'] ?? '') === 'catquiz') {
             $errors = catquiz_handler::instance_form_validation($data, $files);
         }
 
@@ -107,7 +138,7 @@ final class mod_form_extension implements
      * Fetches id of the custom CAT model's record to enable using it in the form when updating the model's parameters.
      *
      * @param array $formdefaultvalues
-     * @param MoodleQuickForm $form
+     * @param ?MoodleQuickForm $form
      * @return array
      */
     public function data_preprocessing_callback(array $formdefaultvalues, ?MoodleQuickForm $form = null): array {

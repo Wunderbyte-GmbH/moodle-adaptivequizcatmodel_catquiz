@@ -24,8 +24,16 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version = 2024123106;
-$plugin->release = '1.0.3';
+$plugin->version = 2026102800;
+$plugin->release = '1.3.0';
 $plugin->maturity = MATURITY_ALPHA;
-$plugin->requires = 2024100700;
+$plugin->requires = 2025100600;
+$plugin->supported = [501, 503];
 $plugin->component = 'adaptivequizcatmodel_catquiz';
+// Only the host is declared here. local_catquiz names this subplugin as its own dependency, and
+// declaring the other direction as well would make the pair uninstallable.
+$plugin->dependencies = [
+    // 2026100902 brings the result contract (mod_adaptivequiz issue #14), which this subplugin implements;
+    // 2026100906 the stop codes of issue #20, which this subplugin hands over.
+    'mod_adaptivequiz' => 2026100906,
+];

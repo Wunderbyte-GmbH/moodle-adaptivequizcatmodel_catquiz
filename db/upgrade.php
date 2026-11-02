@@ -54,5 +54,66 @@ function xmldb_adaptivequizcatmodel_catquiz_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025090500, 'adaptivequizcatmodel', 'catquiz');
     }
 
+    if ($oldversion < 2026100903) {
+        // Local_catquiz #137: the protocol of cli/recover_legacy_results.php.
+        $table = new xmldb_table('adaptivequiz_cat_recovery');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE);
+        $table->add_field('attemptid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('instanceid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('catattemptid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('starttime', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('cutoff', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('oldreason', XMLDB_TYPE_CHAR, '255');
+        $table->add_field('steps', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL);
+        $table->add_field('globalscaleid', XMLDB_TYPE_INTEGER, '10');
+        $table->add_field('rangelower', XMLDB_TYPE_NUMBER, '10, 5');
+        $table->add_field('rangeupper', XMLDB_TYPE_NUMBER, '10, 5');
+        $table->add_field('rangesource', XMLDB_TYPE_CHAR, '20');
+        $table->add_field('valid', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('newreason', XMLDB_TYPE_CHAR, '255');
+        $table->add_field('resultpercent', XMLDB_TYPE_NUMBER, '10, 5');
+        $table->add_field('codeversion', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_index('attemptid', XMLDB_INDEX_UNIQUE, ['attemptid']);
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        upgrade_plugin_savepoint(true, 2026100903, 'adaptivequizcatmodel', 'catquiz');
+    }
+
+    if ($oldversion < 2026100905) {
+        // A CHAR NOT NULL column with '' as default makes XMLDB print a debugging message
+        // on install, which moodle-plugin-ci treats as a failure. The source is empty for
+        // rows that never got a range, so the column may simply be NULL.
+        $table = new xmldb_table('adaptivequiz_cat_recovery');
+        $field = new xmldb_field('rangesource', XMLDB_TYPE_CHAR, '20', null, null, null, null, 'rangeupper');
+        if ($dbman->table_exists($table) && $dbman->field_exists($table, $field)) {
+            $dbman->change_field_notnull($table, $field);
+            $dbman->change_field_default($table, $field);
+        }
+
+        upgrade_plugin_savepoint(true, 2026100905, 'adaptivequizcatmodel', 'catquiz');
+    }
+
+    if ($oldversion < 2026100906) {
+        // Issue #8: older CATquiz attempts whose snapshot holds no valid result keep it - the regular
+        // regrade does not take snapshots again. The recovery of cli/recover_legacy_results.php takes
+        // them on as an ad-hoc task: the upgrade itself only queues it.
+        \adaptivequizcatmodel_catquiz\task\recover_legacy_results::queue_migration();
+
+        upgrade_plugin_savepoint(true, 2026100906, 'adaptivequizcatmodel', 'catquiz');
+    }
+
+    if ($oldversion < 2026101703) {
+        // Issue #8, audit of 2026-10-18: the migration of 2026100906 left attempts started before 2026-07-14
+        // as they were - a cutoff the recovery policy does not have. Queued again, now without one; attempts
+        // recovered then are protocolled and skipped.
+        \adaptivequizcatmodel_catquiz\task\recover_legacy_results::queue_migration();
+
+        upgrade_plugin_savepoint(true, 2026101703, 'adaptivequizcatmodel', 'catquiz');
+    }
+
     return true;
 }
